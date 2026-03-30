@@ -1,0 +1,95 @@
+services:
+  # PostgreSQL database for structured CGGI data
+  postgres:
+    image: postgres:15
+    container_name: cggi-postgres
+    environment:
+      POSTGRES_DB: cggi_db
+      POSTGRES_USER: cggi_user
+      POSTGRES_PASSWORD: cggi_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cggi-network
+
+  # Redis for caching and job queue
+  redis:
+    image: redis:7-alpine
+    container_name: cggi-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cggi-network
+
+  # API service
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: cggi-api
+    ports:
+      - "9000:8000"
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_URL=postgresql://cggi_user:cggi_password@postgres:5432/cggi_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./vector_store.pkl:/app/vector_store.pkl
+      - ./vector_store.index:/app/vector_store.index
+    networks:
+      - cggi-network
+
+  # UI service
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:9000/query
+    container_name: cggi-ui
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:9000/query
+    networks:
+      - cggi-network
+
+  # Worker for background tasks (document processing, etc.)
+  worker:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    container_name: cggi-worker
+    command: celery -A worker worker --loglevel=info
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_URL=postgresql://cggi_user:cggi_password@postgres:5432/cggi_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./vector_store.pkl:/app/vector_store.pkl
+      - ./vector_store.index:/app/vector_store.index
+    networks:
+      - cggi-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  cggi-network:
+    driver: bridge

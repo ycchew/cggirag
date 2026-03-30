@@ -1,0 +1,32 @@
+# Core API Dependencies
+fastapi==0.135.2
+uvicorn==0.42.0
+pydantic==2.12.5
+pydantic-settings==2.13.1
+python-dotenv==1.0.0
+requests==2.31.0
+httpx==0.28.1
+
+# LLM/AI Dependencies
+tiktoken==0.5.2
+sentence-transformers==4.1.0
+faiss-cpu==1.9.0.post1
+dashscope==1.20.14
+
+# Database Dependencies
+psycopg2-binary==2.9.10
+sqlalchemy==2.0.35
+asyncpg==0.31.0
+redis==5.2.0
+celery==5.4.0
+
+# ETL/Processing Dependencies
+pypdf==6.9.2
+PyPDF2==3.0.1
+pandas==2.2.3
+numpy==2.0.2
+scikit-learn==1.6.1
+tqdm==4.66.1
+
+# Utility/Helper Dependencies
+typing-extensions>=4.0.0
